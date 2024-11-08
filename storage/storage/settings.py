@@ -63,8 +63,13 @@ ROBOTSTXT_OBEY = True
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
 ITEM_PIPELINES = {
-    "storage.pipelines.StoragePipeline": 300,
+    'storage.pipelines.CSVStoragePipeline': 1,
+    'storage.pipelines.JSONStoragePipeline': 2,
+    'storage.pipelines.ParquetStoragePipeline': 3,
+    'storage.pipelines.SQLAlchemyPipeline': 4,
+
 }
+
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html

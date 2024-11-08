@@ -2,13 +2,6 @@ import scrapy
 import logging
 import json
 import re
-from collections import defaultdict
-
-
-class Dic(defaultdict):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(dict, *args, **kwargs)
 
 
 class NSASpider(scrapy.Spider):
@@ -27,27 +20,24 @@ class NSASpider(scrapy.Spider):
                 city_name = link.css('::text').get().strip()
                 city_url = response.urljoin(link.css('::attr(href)').get())
 
-                yield response.follow(city_url, self.parse_city, meta={'state': state_name, 'city': city_name})
+                location = {'state': state_name, 'city': city_name}
+
+                yield response.follow(city_url, self.parse_city, meta={'location': location})
 
     def parse_city(self, response):
-        state_name = response.meta['state']
-        city_name = response.meta['city']
+        location = response.meta['location']
 
         facilities = response.css('div#facilitiesBlock div.item')
 
         for facility in facilities:
-            facility_data = Dic({
-                'location': {
-                    'state': state_name,
-                    'city': city_name
-                },
+            facility_data = {
+                'location': location,
                 'name': facility.css('a.part_title_1::text').get(default="").strip(),
                 'url': response.urljoin(facility.css('a.part_title_1::attr(href)').get()),
                 'rating': facility.css('div.part-reviews-num::text').get(default="").strip(),
                 'phone': facility.css('a.block_location_1::attr(href)').re_first(r'tel:(\d+)'),
                 'address': ' '.join(facility.css('address.block_location_1 *::text').getall()).strip(),
-            })
-
+            }
 
             full_address = facility_data['address']
             facility_data['zipcode'] = re.search(r'\b\d{5}\b', full_address).group() if re.search(r'\b\d{5}\b',
@@ -70,23 +60,16 @@ class NSASpider(scrapy.Spider):
             logging.warning("No units found in API response for: %s", response.url)
 
         for unit in units:
-            item = Dic()
 
-            item['location'] = facility_data['location']
-            item['name'] = facility_data['name']
-            item['url'] = facility_data['url']
-            item['rating'] = facility_data['rating']
-            item['phone'] = facility_data['phone']
-            item['address'] = facility_data['address']
-            item['zipcode'] = facility_data['zipcode']
+            relative_url = unit.css('a.form-opener::attr(href)').get(default="")
+            facility_data['unit_url'] = f"https://www.nsastorage.com{relative_url}"
 
-            item['unit_name'] = unit.css('div.unit-select-item-detail-heading::text').get(default="").strip()
-            item['storage_type'] = unit.css('p.det::text').get(default="").strip()
-            item['current_price'] = re.sub(r'[^\d]', '', unit.css('div.part_item_price::text').get(default="").strip())
-            item['old_price'] = unit.css('div.part_item_old_price span.stroke::text').get(default="").strip()
-            item['features'] = [feature.css('span::text').get(default="").strip() for feature in
-                                unit.css('ul.det-listing li')]
-            item['availability'] = unit.css('span.items-left::text').get(default="").strip()
-            item['promotion'] = unit.css('div.part_badge span::text').get(default="").strip()
+            facility_data['unit_name'] = unit.css('div.unit-select-item-detail-heading::text').get(default="").strip()
+            facility_data['storage_type'] = unit.css('p.det::text').get(default="").strip()
+            facility_data['current_price'] = re.sub(r'[^\d]', '', unit.css('div.part_item_price::text').get(default="").strip())
+            facility_data['old_price'] = unit.css('div.part_item_old_price span.stroke::text').get(default="").strip()
+            facility_data['features'] = str([feature.css('span::text').get(default="").strip() for feature in unit.css('ul.det-listing li')])
+            facility_data['availability'] = unit.css('span.items-left::text').get(default="").strip()
+            facility_data['promotion'] = unit.css('div.part_badge span::text').get(default="").strip()
 
-            yield item
+            yield facility_data
