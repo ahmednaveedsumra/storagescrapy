@@ -2,7 +2,11 @@ import csv
 import json
 import pandas as pd
 from .models import Session, Facility
-from datetime import datetime
+from sqlalchemy.dialects.mysql import insert
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql import func
+import logging
+
 
 class CSVStoragePipeline:
     def open_spider(self, spider):
@@ -57,31 +61,47 @@ class ParquetStoragePipeline:
 class SQLAlchemyPipeline:
     def open_spider(self, spider):
         self.session = Session()
+        logging.info("Database session opened for spider.")
 
     def close_spider(self, spider):
         self.session.close()
+        logging.info("Database session closed for spider.")
 
     def process_item(self, item, spider):
-        facility = Facility(
+        try:
+            data = {
+                'location': item.get('location', {}),
+                'name': item.get('name', ''),
+                'url': item.get('url', ''),
+                'rating': item.get('rating', ''),
+                'phone': item.get('phone', ''),
+                'address': item.get('address', ''),
+                'zipcode': item.get('zipcode', ''),
+                'unit_name': item.get('unit_name', ''),
+                'storage_type': item.get('storage_type', ''),
+                'current_price': float(item.get('current_price', 0.0)),
+                'old_price': float(item.get('old_price', 0.0)),
+                'features': item.get('features', ''),
+                'availability': item.get('availability', ''),
+                'promotion': item.get('promotion', ''),
+                'unit_url': item.get('unit_url', ''),
+                'updated_at': func.now()
+            }
+        except (TypeError, ValueError) as e:
+            logging.error(f"Data type error in item {item}: {e}")
+            return item
 
-            location=item.get('location', {}),
-            name=item.get('name', ''),
-            url=item.get('url', ''),
-            rating=item.get('rating', ''),
-            phone=item.get('phone', ''),
-            address=item.get('address', ''),
-            zipcode=item.get('zipcode', ''),
-            unit_name=item.get('unit_name', ''),
-            storage_type=item.get('storage_type', ''),
-            current_price=float(item.get('current_price', 0)),
-            old_price=float(item.get('old_price', 0)),
-            features=item.get('features', ''),
-            availability=item.get('availability', ''),
-            promotion=item.get('promotion', ''),
-            unit_url = item.get('unit_url', '')
+        stmt = insert(Facility).values(data)
+        stmt = stmt.on_duplicate_key_update(
+            **{col: stmt.inserted[col] for col in data if col != 'id'}
         )
 
-        self.session.add(facility)
-        self.session.commit()
+        try:
+            self.session.execute(stmt)
+            self.session.commit()
+            logging.info(f"Record for {data['unit_url']} inserted or updated.")
+        except Exception as e:
+            self.session.rollback()
+            logging.error(f"Error occurred while processing item {data['unit_url']}: {e}")
 
         return item

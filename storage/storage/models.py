@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, JSON,DateTime
+from sqlalchemy import create_engine, Column, Integer, String, Float, JSON,DateTime,UniqueConstraint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.sql import func
@@ -26,6 +26,10 @@ class Facility(Base):
     unit_url = Column(String(250))
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint('storage_type', 'unit_url', name='uix_storage_unit'),
+    )
 
 engine = create_engine('mysql+mysqlconnector://root:ahmad09102@localhost:3306/exceldata')
 
