@@ -104,12 +104,12 @@ class SQLAlchemyPipeline:
 
             unit_stmt = insert(Unit).values(unit_data)
             unit_stmt = unit_stmt.on_duplicate_key_update(
-                **{col: unit_stmt.inserted[col] for col in unit_data if col != 'id'}
+                **{col: unit_stmt.inserted[col] for col in unit_data if col != 'id'} #add facility id here
             )
 
             self.session.execute(unit_stmt)
             self.session.commit()
-            logging.info(f"Unit {unit_data['unit_name']} for Facility {facility_data['url']} inserted or updated.")
+            logging.info(f"Unit {unit_data['storage_type']} for Facility {facility_data['url']} inserted or updated.")
 
         except Exception as e:
             self.session.rollback()

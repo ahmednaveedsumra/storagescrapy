@@ -40,7 +40,7 @@ class Unit(Base):
 
     # Unique constraint on unit_name and unit_url
     __table_args__ = (
-        UniqueConstraint('unit_name', 'unit_url', name='uix_unit_name_url'),
+        UniqueConstraint('storage_type', 'unit_url', name='uix_storage_type_url'),
     )
 
     # Relationship to Facility
