@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine, Column, Integer, String, Float, JSON, DateTime, UniqueConstraint, ForeignKey
+from sqlalchemy import create_engine, Column, Integer,Date, String, Float, JSON, DateTime, UniqueConstraint, ForeignKey
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 from sqlalchemy.sql import func
@@ -11,7 +11,7 @@ class Facility(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     location = Column(JSON, nullable=True)
     name = Column(String(100), nullable=False)
-    url = Column(String(250), unique=True, nullable=False)  # Unique constraint on URL
+    url = Column(String(250), unique=True, nullable=False)
     rating = Column(String(10), nullable=True)
     phone = Column(String(20), nullable=True)
     address = Column(String(250), nullable=True)
@@ -19,7 +19,6 @@ class Facility(Base):
     created_at = Column(DateTime, default=func.now(), nullable=False)
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
 
-    # One-to-many relationship with Unit
     units = relationship("Unit", back_populates="facility")
 
 class Unit(Base):
@@ -35,18 +34,17 @@ class Unit(Base):
     availability = Column(String(100), nullable=True)
     promotion = Column(String(100), nullable=True)
     unit_url = Column(String(250), nullable=False)
-    created_at = Column(DateTime, default=func.now(), nullable=False)
-    updated_at = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)
-
-    # Unique constraint on unit_name and unit_url
+    created_at_date = Column(Date, default=func.current_date(), nullable=False)
     __table_args__ = (
-        UniqueConstraint('storage_type', 'unit_url', name='uix_storage_type_url'),
+        UniqueConstraint('facility_id', 'created_at_date', 'storage_type', 'unit_url', name='unique_unit_per_day'),
     )
 
-    # Relationship to Facility
     facility = relationship("Facility", back_populates="units")
 
-# Database setup
+CSV_FILE_PATH = 'output.csv'
+TABLE_NAME = "csvdata"
+
 engine = create_engine('mysql+mysqlconnector://root:ahmad09102@localhost:3306/storage')
 Base.metadata.create_all(engine)
 Session = sessionmaker(bind=engine)
+

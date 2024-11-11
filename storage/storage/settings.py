@@ -62,11 +62,12 @@ ROBOTSTXT_OBEY = True
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-ITEM_PIPELINES = { 
-    'storage.pipelines.CSVStoragePipeline': 1,
-    'storage.pipelines.JSONStoragePipeline': 2,
-    'storage.pipelines.ParquetStoragePipeline': 3,
-    'storage.pipelines.SQLAlchemyPipeline': 4,
+ITEM_PIPELINES = {
+    # 'storage.pipelines.CSVStoragePipeline': 1,
+    # 'storage.pipelines.JSONStoragePipeline': 2,
+    # 'storage.pipelines.ParquetStoragePipeline': 3,
+    'storage.pipelines.SQLAlchemyPipeline': 1,
+    'storage.pipelines.CsvToMysqlPipeline': 2,
 
 }
 
